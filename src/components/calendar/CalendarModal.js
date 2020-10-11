@@ -1,4 +1,6 @@
 import React from 'react';
+import { useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 import moment from 'moment';
 import Modal from 'react-modal';
@@ -6,25 +8,32 @@ import DateTimePicker from 'react-datetime-picker';
 import Swal from 'sweetalert2';
 
 import { customStyles } from '../../helpers/centerModalStyles';
-import { useState } from 'react';
+import { uiCloseModal } from '../../actions/ui';
+import { eventAddNew } from '../../actions/calendarEvents';
 
 Modal.setAppElement('#root');
 
 const now = moment().minutes(0).seconds(0).add(1, 'hours');
 const endInit = now.clone().add(1, 'hours')
 
+const intiEvent = {
+    title: '',
+    notes: '',
+    start: now.toDate(),
+    end: endInit.toDate()
+}
+
 export const CalendarModal = () => {
 
-    const [dateStart, setDateStart] = useState(now.toDate());
-    const [dateEnd, setDateEnd] = useState(endInit.toDate());
+    const { modalOpen } = useSelector(state => state.ui);
+    
+    const dispatch = useDispatch();
+
+    // const [dateStart, setDateStart] = useState(now.toDate());
+    // const [dateEnd, setDateEnd] = useState(endInit.toDate());
     const [titleValid, setTitleValid] = useState(true)
 
-    const [formValues, setFormValues] = useState({
-        title: 'Evento',
-        notes: '',
-        start: now.toDate(),
-        end: endInit.toDate()
-    });
+    const [formValues, setFormValues] = useState( intiEvent );
 
     const { notes, title, start, end } = formValues;
 
@@ -36,11 +45,12 @@ export const CalendarModal = () => {
     }
 
     const closeModal = () => {
-
+        dispatch( uiCloseModal() );
+        setFormValues( intiEvent )
     }
 
     const handleEndDate = (e) => {
-        setDateEnd(e)
+        // setDateEnd(e)
         setFormValues({
             ...formValues,
             end: e
@@ -48,7 +58,7 @@ export const CalendarModal = () => {
     }
 
     const handleStartDate = (e) => {
-        setDateStart(e);
+        // setDateStart(e);
         setFormValues({
             ...formValues,
             start: e
@@ -62,7 +72,7 @@ export const CalendarModal = () => {
         const momentEnd = moment( end );
 
         if ( momentStart.isSameOrAfter( momentEnd ) ){
-            Swal.fire('Error', 'La fecha fin debe ser mayor a la de la inicio')
+            Swal.fire('Error', 'La fecha de fin debe ser mayor a la de la inicio')
             return;
         }
 
@@ -71,6 +81,15 @@ export const CalendarModal = () => {
         }
 
         // Realizar grabación base datos
+        console.log(formValues);
+        dispatch( eventAddNew({
+            ...formValues,
+            id: new Date().getTime(),
+            user: {
+                _id: 123,
+                name: 'otro'
+            }
+        }) )
 
         setTitleValid(true);
         closeModal();
@@ -78,8 +97,8 @@ export const CalendarModal = () => {
 
     return (
         <Modal
-            isOpen={true}
-            onRequestClose={closeModal}
+            isOpen={ modalOpen }
+            onRequestClose={ closeModal }
             style={customStyles}
             closeTimeoutMS={200}
             className="modal"
@@ -98,7 +117,7 @@ export const CalendarModal = () => {
                         className="form-control"
                         minDate={now.toDate()}
                         onChange={handleStartDate}
-                        value={dateStart}
+                        value={ formValues.start }
                     />
                 </div>
 
@@ -107,8 +126,8 @@ export const CalendarModal = () => {
                     <DateTimePicker
                         className="form-control"
                         onChange={handleEndDate}
-                        minDate={dateStart}
-                        value={dateEnd}
+                        minDate={ formValues.start }
+                        value={ formValues.end }
                     />
                 </div>
 
